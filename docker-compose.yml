@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    container_name: arbitrage-app
+    env_file: .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./deploy/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./deploy/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards
+    restart: unless-stopped
