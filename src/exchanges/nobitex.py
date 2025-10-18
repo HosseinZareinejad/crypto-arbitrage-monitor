@@ -8,7 +8,12 @@ from ..metrics import requests_total, fetch_errors_total, http_client_latency_se
 class NobitexClient:
     def __init__(self, client: Optional[httpx.AsyncClient] = None):
         self.base = settings.NOBITEX_BASE_URL.rstrip('/')
-        self._client = client or httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_SECONDS)
+        headers = {}
+        if settings.NOBITEX_API_KEY:
+            headers["x-api-key"] = settings.NOBITEX_API_KEY
+        self._client = client or httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT_SECONDS, headers=headers)
+        # attach headers for resilient_get helper
+        setattr(self._client, "_extra_headers", headers)
         # conservative: 5 req/sec with burst 5
         self._limiter = TokenBucket(rate_per_sec=5, capacity=5)
         self._breaker = CircuitBreaker(failure_threshold=3, open_seconds=1.5)
@@ -21,7 +26,7 @@ class NobitexClient:
         result: Dict[str, PriceSnapshot] = {}
         for sym in symbols:
             mapped = NOBITEX_SYMBOL_MAP.get(sym, sym.replace('/',''))
-            url = f"{self.base}/v2/orderbook/{mapped}"
+            url = f"{self.base}/v3/orderbook/{mapped}"
             start = time.perf_counter()
             try:
                 r = await resilient_get(self._client, url, "nobitex", self._limiter, self._breaker)

@@ -81,7 +81,7 @@ async def resilient_get(
             await asyncio.sleep(0.1)
             continue
         try:
-            resp = await client.get(url)
+            resp = await client.get(url, headers=getattr(client, "_extra_headers", None))
             # backoff on 429/5xx
             if resp.status_code in (429, 500, 502, 503, 504):
                 if breaker:
