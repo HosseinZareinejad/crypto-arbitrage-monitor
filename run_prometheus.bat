@@ -1,0 +1,3 @@
+@echo off
+echo Starting Prometheus...
+prometheus --config.file=prometheus.yml --web.listen-address=:9090

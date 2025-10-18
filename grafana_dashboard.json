@@ -1,0 +1,100 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Arbitrage Monitor",
+    "tags": ["arbitrage"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Client Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_client_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{exchange}} - 95th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Latency (seconds)"
+          }
+        ],
+        "xAxes": [
+          {
+            "type": "time"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Requests Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(requests_total[5m])) by (exchange, outcome)",
+            "legendFormat": "{{exchange}} - {{outcome}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Last Bid/Ask Prices",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "last_bid",
+            "legendFormat": "{{exchange}} {{symbol}} - Bid"
+          },
+          {
+            "expr": "last_ask",
+            "legendFormat": "{{exchange}} {{symbol}} - Ask"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Price"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Arbitrage Alerts",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(alerts_sent_total)",
+            "legendFormat": "Total Alerts"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Price Differences",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "last_diff_pct",
+            "legendFormat": "{{symbol}} - {{direction}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Difference %"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}
