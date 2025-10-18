@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     RETRY_BASE_DELAY: float = 0.2
     RETRY_MAX_DELAY: float = 3.0
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     @property
     def symbols_list(self) -> List[str]:
