@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     TELEGRAM_TOKEN: str | None = None
     TELEGRAM_CHAT_ID: str | None = None
+    
+    BALE_TOKEN: str | None = None
+    BALE_CHAT_ID: str | None = None
 
     NOBITEX_BASE_URL: str = "https://api.nobitex.ir"
     NOBITEX_API_KEY: str | None = None

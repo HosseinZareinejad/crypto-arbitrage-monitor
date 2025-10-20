@@ -7,6 +7,7 @@ from ..config import settings
 import asyncio
 import logging
 from telegram import Bot
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class TelegramNotifier:
         raw_ids = settings.TELEGRAM_CHAT_ID
         self.chat_ids: List[Union[int, str]] = _normalize_chat_ids(raw_ids)
         self._bot: Optional[Bot] = Bot(token=self.token) if self.token else None
+        self._bale_notifier = BaleNotifier()
 
     async def _send_one(self, chat_id, text: str) -> None:
         if not self._bot:
@@ -41,7 +43,75 @@ class TelegramNotifier:
         await self._bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True)
 
     async def send(self, opp: ArbOpportunity) -> None:
-        if not (self._bot and self.chat_ids):
+        text = (
+            "Arbitrage Opportunity\n"
+            f"Pair: {opp.symbol}\n"
+            f"Buy from: {opp.buy_from} @ {opp.buy_price:.4f}\n"
+            f"Sell to: {opp.sell_to} @ {opp.sell_price:.4f}\n"
+            f"Spread: {opp.diff_abs:.4f} ({opp.diff_pct:.2f}%)\n"
+            f"Time: {opp.ts.isoformat()}"
+        )
+        
+        # Send to Telegram
+        if self._bot and self.chat_ids:
+            try:
+                await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
+                logger.info(f"✅ Telegram alert sent for {opp.symbol}")
+            except Exception as e:
+                logger.error(f"❌ Failed to send Telegram alert: {e}", exc_info=True)
+        
+        # Send to Bale
+        try:
+            await self._bale_notifier.send(opp)
+        except Exception as e:
+            logger.error(f"❌ Failed to send Bale alert: {e}", exc_info=True)
+        
+        # Update metrics
+        direction = f"{opp.buy_from}_to_{opp.sell_to}"
+        alerts_sent_total.labels(symbol=opp.symbol, direction=direction).inc()
+
+    async def send_text(self, text: str) -> None:
+        # Send to Telegram
+        if self._bot and self.chat_ids:
+            try:
+                await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
+                logger.info("✅ Telegram test message sent")
+            except Exception as e:
+                logger.error(f"❌ Failed to send Telegram test message: {e}", exc_info=True)
+        
+        # Send to Bale
+        try:
+            await self._bale_notifier.send_text(text)
+        except Exception as e:
+            logger.error(f"❌ Failed to send Bale test message: {e}", exc_info=True)
+
+
+class BaleNotifier:
+    """Handles sending messages and arbitrage alerts via Bale bot."""
+    def __init__(self):
+        self.token = settings.BALE_TOKEN
+        raw_ids = settings.BALE_CHAT_ID
+        self.chat_ids: List[Union[int, str]] = _normalize_chat_ids(raw_ids)
+        self.base_url = "https://tapi.bale.ai/bot"
+
+    async def _send_one(self, chat_id, text: str) -> None:
+        if not self.token:
+            return
+        
+        url = f"{self.base_url}{self.token}/sendMessage"
+        data = {
+            "chat_id": chat_id,
+            "text": text,
+            "disable_web_page_preview": True
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=data) as response:
+                if response.status != 200:
+                    logger.error(f"Bale API error: {response.status} - {await response.text()}")
+
+    async def send(self, opp: ArbOpportunity) -> None:
+        if not (self.token and self.chat_ids):
             return
         text = (
             "Arbitrage Opportunity\n"
@@ -55,15 +125,15 @@ class TelegramNotifier:
             await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
             direction = f"{opp.buy_from}_to_{opp.sell_to}"
             alerts_sent_total.labels(symbol=opp.symbol, direction=direction).inc()
-            logger.info(f"✅ Telegram alert sent for {opp.symbol}")
+            logger.info(f"✅ Bale alert sent for {opp.symbol}")
         except Exception as e:
-            logger.error(f"❌ Failed to send Telegram alert: {e}", exc_info=True)
+            logger.error(f"❌ Failed to send Bale alert: {e}", exc_info=True)
 
     async def send_text(self, text: str) -> None:
-        if not (self._bot and self.chat_ids):
+        if not (self.token and self.chat_ids):
             return
         try:
             await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
-            logger.info("✅ Telegram test message sent")
+            logger.info("✅ Bale test message sent")
         except Exception as e:
-            logger.error(f"❌ Failed to send Telegram test message: {e}", exc_info=True)
+            logger.error(f"❌ Failed to send Bale test message: {e}", exc_info=True)
