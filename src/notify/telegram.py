@@ -44,7 +44,7 @@ class TelegramNotifier:
         if not (self._bot and self.chat_ids):
             return
         text = (
-            "⚡️ Arbitrage Opportunity\n"
+            "Arbitrage Opportunity\n"
             f"Pair: {opp.symbol}\n"
             f"Buy from: {opp.buy_from} @ {opp.buy_price:.4f}\n"
             f"Sell to: {opp.sell_to} @ {opp.sell_price:.4f}\n"
