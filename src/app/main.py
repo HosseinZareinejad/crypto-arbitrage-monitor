@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, structlog
+import asyncio, structlog, logging
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse, JSONResponse
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -24,7 +24,8 @@ state = {
 
 @app.on_event("startup")
 async def startup():
-    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(settings.LOG_LEVEL))
+    level = getattr(logging, str(settings.LOG_LEVEL).upper(), logging.INFO)
+    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(level))
     app.state.nobitex = NobitexClient()
     app.state.wallex = WallexClient()
     app.state.worker_task = asyncio.create_task(worker_loop())

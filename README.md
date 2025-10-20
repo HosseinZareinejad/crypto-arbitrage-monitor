@@ -26,20 +26,32 @@ pip install -r requirements.txt
 
 ### 3. Run Services
 
-**Option A: All-in-one (Recommended)**
+**Option A: One-click start (Windows)**
 
 ```bash
-# Start main service
+run_all.bat  # Starts all services and opens browser
+```
+
+**Option B: Docker Compose (Recommended)**
+
+```bash
+docker-compose up -d
+```
+
+**Option C: Manual start**
+
+```bash
+# Terminal 1 - Main service
 uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload
 
-# In another terminal - Start Prometheus
+# Terminal 2 - Prometheus
 prometheus --config.file=prometheus.yml --web.listen-address=:9090
 
-# In another terminal - Start Grafana
+# Terminal 3 - Grafana
 docker run -d --name grafana -p 3000:3000 grafana/grafana
 ```
 
-**Option B: Using batch files (Windows)**
+**Option D: Individual batch files (Windows)**
 
 ```bash
 run_local.bat      # Starts the service
@@ -103,35 +115,6 @@ Edit `SYMBOLS` in `.env`:
 SYMBOLS=BTC/USDT,USDT/IRT,ETH/USDT
 ```
 
-## 🏗️ Architecture
-
-```
-┌─────────────────┐
-│   FastAPI App   │
-│  (Port 8000)    │
-└─────────┬───────┘
-          │
-    ┌─────▼─────┐
-    │  Worker   │
-    │   Loop    │
-    └─────┬─────┘
-          │
-    ┌─────▼─────┐    ┌─────────────┐
-    │  Fetch    │───▶│  Nobitex    │
-    │  Prices   │    │  API        │
-    └─────┬─────┘    └─────────────┘
-          │
-    ┌─────▼─────┐    ┌─────────────┐
-    │  Compute  │───▶│   Wallex    │
-    │Arbitrage  │    │  API        │
-    └─────┬─────┘    └─────────────┘
-          │
-    ┌─────▼─────┐
-    │ Telegram  │
-    │  Alerts   │
-    └───────────┘
-```
-
 ## 🧪 Testing
 
 ### Test Individual Components
@@ -144,7 +127,10 @@ python tests/test_telegram.py
 python tests/test_nobitex_simple.py
 python tests/test_wallex_simple.py
 
-# Test Worker
+# Test Full System (30 seconds)
+python test_full_system.py
+
+# Test Worker only
 python main_worker.py
 ```
 
@@ -176,3 +162,33 @@ mypy --ignore-missing-imports .  # Type checking
 - Telegram is optional - service runs without it
 - Use low `THRESHOLD_PERCENT` for testing
 - Check logs for debugging
+- All services include proper error logging
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐
+│   FastAPI App   │
+│  (Port 8000)    │
+└─────────┬───────┘
+          │
+    ┌─────▼─────┐
+    │  Worker   │
+    │   Loop    │
+    └─────┬─────┘
+          │
+    ┌─────▼─────┐    ┌─────────────┐
+    │  Fetch    │───▶│  Nobitex    │
+    │  Prices   │    │  API        │
+    └─────┬─────┘    └─────────────┘
+          │
+    ┌─────▼─────┐    ┌─────────────┐
+    │  Compute  │───▶│   Wallex    │
+    │Arbitrage  │    │  API        │
+    └─────┬─────┘    └─────────────┘
+          │
+    ┌─────▼─────┐
+    │ Telegram  │
+    │  Alerts   │
+    └───────────┘
+```

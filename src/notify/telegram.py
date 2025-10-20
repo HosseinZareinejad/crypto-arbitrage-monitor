@@ -5,7 +5,10 @@ from ..models import ArbOpportunity
 from ..metrics import alerts_sent_total
 from ..config import settings
 import asyncio
+import logging
 from telegram import Bot
+
+logger = logging.getLogger(__name__)
 
 def _normalize_chat_ids(raw):
     if not raw:
@@ -52,13 +55,15 @@ class TelegramNotifier:
             await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
             direction = f"{opp.buy_from}_to_{opp.sell_to}"
             alerts_sent_total.labels(symbol=opp.symbol, direction=direction).inc()
-        except Exception:
-            pass
+            logger.info(f"✅ Telegram alert sent for {opp.symbol}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send Telegram alert: {e}", exc_info=True)
 
     async def send_text(self, text: str) -> None:
         if not (self._bot and self.chat_ids):
             return
         try:
             await asyncio.gather(*[self._send_one(cid, text) for cid in self.chat_ids], return_exceptions=True)
-        except Exception:
-            pass
+            logger.info("✅ Telegram test message sent")
+        except Exception as e:
+            logger.error(f"❌ Failed to send Telegram test message: {e}", exc_info=True)
