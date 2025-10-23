@@ -1,6 +1,6 @@
 from __future__ import annotations
-from ..models import PriceSnapshot, ArbOpportunity
-from ..metrics import last_diff_pct
+from ..domain.models import PriceSnapshot, ArbOpportunity
+from ..metrics import last_diff_pct, opportunities_found_total
 from typing import Dict, Optional
 from datetime import datetime, timedelta
 
@@ -35,6 +35,9 @@ class ArbEngine:
             if now - last["ts"] < self.cooldown and diff_pct < last["pct"] + self.hysteresis:
                 return None
 
+        # Increment opportunities counter
+        opportunities_found_total.labels(symbol=a.symbol, direction=direction).inc()
+        
         opp = ArbOpportunity(
             symbol=a.symbol, buy_from=a.exchange, buy_price=buy_price,
             sell_to=b.exchange, sell_price=sell_price, diff_abs=diff_abs,

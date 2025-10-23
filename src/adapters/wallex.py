@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from ..domain.models import PriceSnapshot, utcnow
 from ..config import settings
 from ..exchanges.common import WALLEX_SYMBOL_MAP, TokenBucket, CircuitBreaker, resilient_get
-from ..consolidated_imports import requests_total, fetch_errors_total, http_client_latency_seconds, last_bid, last_ask
+from ..metrics import requests_total, fetch_errors_total, http_client_latency_seconds, last_bid, last_ask
 
 
 class WallexClient:

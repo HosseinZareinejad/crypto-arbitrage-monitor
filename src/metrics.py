@@ -12,6 +12,10 @@ alerts_sent_total = Counter(
     "alerts_sent_total", "Total arbitrage alerts sent", ["symbol", "direction"]
 )
 
+opportunities_found_total = Counter(
+    "opportunities_found_total", "Arbitrage opportunities evaluated as >= threshold", ["symbol", "direction"]
+)
+
 http_client_latency_seconds = Histogram(
     "http_client_latency_seconds", "HTTP client latency", ["exchange"]
 )

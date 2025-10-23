@@ -1,7 +1,7 @@
 .PHONY: run test lint type format docker-up docker-down
 
 run:
-	uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000
+	uvicorn src.service.api:app --reload --host 0.0.0.0 --port 8000
 
 test:
 	pytest -q

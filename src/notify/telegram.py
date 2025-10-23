@@ -1,7 +1,7 @@
 # src/notify/telegram.py
 from __future__ import annotations
 from typing import Optional, Iterable, List, Union
-from ..models import ArbOpportunity
+from ..domain.models import ArbOpportunity
 from ..metrics import alerts_sent_total
 from ..config import settings
 import asyncio

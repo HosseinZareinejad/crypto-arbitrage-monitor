@@ -7,7 +7,7 @@ from ..config import settings
 from ..adapters.nobitex import NobitexClient
 from ..adapters.wallex import WallexClient
 from ..domain.arbitrage_engine import ArbEngine
-from ..consolidated_imports import TelegramNotifier
+from ..notify.telegram import TelegramNotifier
 from ..domain.models import PriceSnapshot
 
 app = FastAPI(title="Arbitrage Notifier", version="1.0.0")
