@@ -1,4 +1,45 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.x" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "symbol",
+        "type": "query",
+        "hide": 0,
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(last_bid, symbol)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": true,
+        "current": { "selected": true, "text": ["BTC/USDT"], "value": ["BTC/USDT"] }
+      },
+      {
+        "name": "exchange",
+        "type": "query",
+        "hide": 2,
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(last_bid, exchange)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
   "annotations": {
     "list": [
       {
@@ -9,28 +50,39 @@
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
         "type": "dashboard"
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "name": "Arbitrage Found",
+        "type": "query",
+        "expr": "sum by (symbol, direction) (increase(opportunities_found_total{symbol=~\"$symbol\"}[1m]))",
+        "titleFormat": "Arbitrage Found",
+        "textFormat": "{{symbol}} · {{direction}}"
       }
     ]
   },
   "editable": true,
-  "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
-  "links": [],
   "panels": [
     {
       "type": "timeseries",
       "title": "Spread Percentage (5m) — Price Differences",
       "targets": [
         {
-          "expr": "last_over_time(last_diff_pct[5m])",
+          "expr": "last_over_time(last_diff_pct{symbol=~\"$symbol\"}[5m])",
           "legendFormat": "{{symbol}} - {{direction}}",
           "refId": "A",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": -1, "max": 1 },
+        "overrides": []
+      },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
     },
     {
@@ -38,16 +90,16 @@
       "title": "Last Bid/Ask Prices",
       "targets": [
         {
-          "expr": "last_bid",
+          "expr": "last_bid{symbol=~\"$symbol\",exchange=~\"$exchange\"}",
           "legendFormat": "{{exchange}} {{symbol}} - Bid",
           "refId": "A",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         },
         {
-          "expr": "last_ask",
+          "expr": "last_ask{symbol=~\"$symbol\",exchange=~\"$exchange\"}",
           "legendFormat": "{{exchange}} {{symbol}} - Ask",
           "refId": "B",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -59,14 +111,14 @@
       "title": "HTTP Client Latency p95 by Exchange",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_client_latency_seconds_bucket[5m])) by (le, exchange))",
+          "expr": "1000 * histogram_quantile(0.95, sum(rate(http_client_latency_seconds_bucket[5m])) by (le, exchange))",
           "legendFormat": "p95 {{exchange}}",
           "refId": "C",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
     },
     {
@@ -77,7 +129,7 @@
           "expr": "100 * (sum by (exchange) (rate(fetch_errors_total[5m]))) / clamp_min((sum by (exchange) (rate(requests_total[5m]))), 1e-9)",
           "legendFormat": "Error% {{exchange}}",
           "refId": "D",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -89,10 +141,10 @@
       "title": "Opportunities Found (30m)",
       "targets": [
         {
-          "expr": "sum by (symbol, direction) (increase(opportunities_found_total[30m]))",
+          "expr": "sum by (symbol, direction) (increase(opportunities_found_total{symbol=~\"$symbol\"}[30m]))",
           "legendFormat": "{{symbol}} - {{direction}}",
           "refId": "E",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -104,10 +156,10 @@
       "title": "Requests Status (5m)",
       "targets": [
         {
-          "expr": "sum by (exchange, outcome) (rate(requests_total[5m]))",
+          "expr": "sum by (exchange, outcome) (rate(requests_total{exchange=~\"$exchange\"}[5m]))",
           "legendFormat": "{{exchange}} - {{outcome}}",
           "refId": "F",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -119,10 +171,10 @@
       "title": "Total Arbitrage Alerts",
       "targets": [
         {
-          "expr": "sum(alerts_sent_total)",
+          "expr": "sum(alerts_sent_total{symbol=~\"$symbol\"})",
           "legendFormat": "Total Alerts",
           "refId": "G",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": {
@@ -130,11 +182,7 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
@@ -145,10 +193,10 @@
       "title": "Opportunities Discovery Rate (5m)",
       "targets": [
         {
-          "expr": "rate(opportunities_found_total[5m])",
+          "expr": "rate(opportunities_found_total{symbol=~\"$symbol\"}[5m])",
           "legendFormat": "{{symbol}} - {{direction}}",
           "refId": "H",
-          "datasource": "Prometheus"
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
         }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -162,10 +210,7 @@
   "tags": ["arbitrage", "monitoring"],
   "timezone": "",
   "title": "Arbitrage Monitoring Dashboard",
-  "version": 3,
+  "version": 6,
   "weekStart": "",
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  }
+  "time": { "from": "now-1h", "to": "now" }
 }

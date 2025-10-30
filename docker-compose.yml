@@ -1,45 +1,40 @@
-version: '3.8'
-
 services:
-  arbitrage-app:
-    build: .
-    container_name: arbitrage-app
-    ports:
-      - "8000:8000"
-    env_file: .env
-    restart: unless-stopped
-    depends_on:
-      - prometheus
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: arbitrage-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: arbitrage-grafana
-    ports:
-      - "3000:3000"
+  postgres:
+    image: postgres:16
+    container_name: larry-postgres
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      POSTGRES_DB: arbitrage
+      POSTGRES_USER: larry
+      POSTGRES_PASSWORD: larry
     volumes:
-      - grafana-storage:/var/lib/grafana
-      - ./grafana_dashboard.json:/var/lib/grafana/dashboards/arbitrage.json:ro
-    restart: unless-stopped
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U larry -d arbitrage || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - mynetwork
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: larry-pg-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://larry:larry@172.20.0.2:5432/arbitrage?sslmode=disable"
     depends_on:
-      - prometheus
+      - postgres
+    ports:
+      - "9187:9187"
+    networks:
+      - mynetwork
+    restart: always
 
 volumes:
-  grafana-storage:
+  pgdata:
+
+networks:
+  mynetwork:
+    external: true

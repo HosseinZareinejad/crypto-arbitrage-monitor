@@ -7,3 +7,9 @@ scrape_configs:
     scheme: https
     static_configs:
       - targets: ["hoosein-arbitrage-service.liara.run"]
+
+  - job_name: "postgres"
+    scheme: http
+    metrics_path: /metrics
+    static_configs:
+      - targets: [92.114.51.7:9187"]
